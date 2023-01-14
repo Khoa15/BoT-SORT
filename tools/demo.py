@@ -29,6 +29,8 @@ def make_parser():
     parser.add_argument("--path", default="", help="path to images or video")
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
     parser.add_argument("--save_result", action="store_true",help="whether to save the inference result of image/video")
+    parser.add_argument("--save_path", type=str)
+    parser.add_argument("--save_box_text", type=int, default=0)
     parser.add_argument("-f", "--exp_file", default=None, type=str, help="pls input your expriment description file")
     parser.add_argument("-c", "--ckpt", default=None, type=str, help="ckpt for eval")
     parser.add_argument("--device", default="gpu", type=str, help="device to run our model, can either be cpu or gpu")
@@ -217,6 +219,15 @@ def image_demo(predictor, vis_folder, current_time, args):
 
 def imageflow_demo(predictor, vis_folder, current_time, args):
     cap = cv2.VideoCapture(args.path if args.demo == "video" else args.camid)
+    folder_name = args.path.split("/")[-2]
+    folder_name = args.path.split("/")[-2]
+    file_name = args.path.split("/")[-1]
+    folder_save = osp.join(args.save_path, folder_name)
+    os.makedirs(folder_save, exist_ok=True)
+    file_save = osp.join(folder_save, file_name)
+
+    print(file_save)
+
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -227,9 +238,9 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         save_path = osp.join(save_folder, args.path.split("/")[-1])
     else:
         save_path = osp.join(save_folder, "camera.mp4")
-    logger.info(f"video save_path is {save_path}")
+    logger.info(f"video save_path is {file_save}")
     vid_writer = cv2.VideoWriter(
-        save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
+        file_save, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
     )
     tracker = BoTSORT(args, frame_rate=args.fps)
     timer = Timer()
@@ -283,7 +294,9 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         frame_id += 1
 
     if args.save_result:
-        res_file = osp.join(vis_folder, f"{timestamp}.txt")
+        folder_save = osp.join(args.save_box_text, folder_name)
+        os.makedirs(folder_save, exist_ok=True)
+        res_file = osp.join(vis_folder, f"{timestamp}.txt") if args.save_box_text is None else osp.join(folder_save, f"{file_name[:-4]}.txt")
         with open(res_file, 'w') as f:
             f.writelines(results)
         logger.info(f"save results to {res_file}")
